@@ -1,0 +1,16 @@
+{
+  "_README": "Final round of the Template Game. Structurally it's just a board with ONE category and ONE clue — no grid needed since there's only one tile. See sample-game.json's _README for the full format guide.",
+
+  "_ponytail": "Real Final Jeopardy has players secretly wager part of their score before the clue is shown, then everyone answers at once instead of buzzing. This engine doesn't implement wagering or simultaneous-answer — the clue plays like a normal buzzer clue (first to buzz answers). Add a wager step + reveal-all-answers flow if you want the real rule.",
+
+  "name": "Template Game — Final Round",
+
+  "categories": [
+    {
+      "name": "WORLD CAPITALS",
+      "clues": [
+        { "value": 2000, "question": "This city has served as the capital of four different countries: the Roman Empire, the Byzantine Empire, the Ottoman Empire, and modern Turkey once briefly considered it before choosing Ankara.", "answer": "What is Istanbul (Constantinople)?" }
+      ]
+    }
+  ]
+}

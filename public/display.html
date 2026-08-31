@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jeopardy — Display</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@700;900&family=Space+Grotesk:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div id="lobby-screen" class="center-screen" style="display:none">
+  <p class="label-caps">Waiting for host to start</p>
+  <h1 class="display-lg" id="lobby-game-name">Jeopardy</h1>
+  <div id="lobby-players" class="scoreboard"></div>
+</div>
+
+<div id="board-screen" style="display:none">
+  <header class="bar">
+    <h1 class="headline-lg" id="game-name-board">Jeopardy</h1>
+  </header>
+  <div id="board" class="board"></div>
+  <div id="scoreboard" class="scoreboard"></div>
+</div>
+
+<div id="clue-screen" class="clue-overlay" style="display:none">
+  <div class="clue-card">
+    <div class="label-caps category-label" id="clue-category"></div>
+    <div class="tile-value" id="clue-value" style="color:var(--gold)"></div>
+    <div class="headline-lg question" id="clue-question"></div>
+    <div id="buzz-status" class="label-caps"></div>
+  </div>
+</div>
+
+<div id="results-screen" class="center-screen" style="display:none">
+  <p class="label-caps">Final Results</p>
+  <h1 class="display-lg winner" id="winner-name"></h1>
+  <div id="results-scoreboard" class="scoreboard"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/game-ui.js"></script>
+<script>
+const socket = io();
+
+const screens = {
+  lobby: document.getElementById('lobby-screen'),
+  board: document.getElementById('board-screen'),
+  clue: document.getElementById('clue-screen'),
+  results: document.getElementById('results-screen'),
+};
+function showScreen(name) {
+  Object.entries(screens).forEach(([k, el]) => { el.style.display = k === name ? '' : 'none'; });
+}
+
+socket.on('state', state => {
+  if (state.phase === 'lobby') {
+    document.getElementById('lobby-game-name').textContent = state.gameName || 'Jeopardy';
+    GameUI.renderScoreboard(document.getElementById('lobby-players'), state.players);
+    showScreen('lobby');
+    return;
+  }
+
+  if (state.phase === 'results') {
+    const ranked = [...state.players].sort((a, b) => b.score - a.score);
+    document.getElementById('winner-name').textContent = ranked[0] ? `🏆 ${ranked[0].name} wins!` : 'No players';
+    GameUI.renderScoreboard(document.getElementById('results-scoreboard'), state.players, { rank: true });
+    showScreen('results');
+    return;
+  }
+
+  if (state.phase === 'clue' && state.currentClue) {
+    const c = state.currentClue;
+    document.getElementById('clue-category').textContent = c.category;
+    document.getElementById('clue-value').textContent = GameUI.fmtMoney(c.value);
+    document.getElementById('clue-question').textContent = c.question;
+    document.getElementById('buzz-status').textContent = c.buzzedPlayerId
+      ? `${state.players.find(p => p.id === c.buzzedPlayerId)?.name || '...'} buzzed in!`
+      : (c.buzzerOpen ? 'Buzzers open…' : '');
+    showScreen('clue');
+    return;
+  }
+
+  document.getElementById('game-name-board').textContent = state.gameName || 'Jeopardy';
+  GameUI.renderBoard(document.getElementById('board'), state.categories);
+  GameUI.renderScoreboard(document.getElementById('scoreboard'), state.players);
+  showScreen('board');
+});
+</script>
+</body>
+</html>

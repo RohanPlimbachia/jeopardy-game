@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jeopardy — Host</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@700;900&family=Space+Grotesk:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="bar">
+  <h1 class="headline-lg" id="game-name">Jeopardy — Host</h1>
+  <div id="phase-pill" class="pill label-caps"></div>
+</header>
+
+<div id="lobby-controls" class="wrap" style="display:none">
+  <div class="join-form" style="align-items:flex-start; text-align:left">
+    <label class="label-caps">Choose a game</label>
+    <select id="game-select"></select>
+    <button id="load-btn" class="btn btn-outline">Load Game</button>
+    <button id="start-btn" class="btn btn-primary" disabled>Start Game</button>
+  </div>
+  <p class="label-caps">Players joined</p>
+  <div id="lobby-players" class="scoreboard"></div>
+</div>
+
+<div id="board-screen" style="display:none">
+  <div id="board" class="board"></div>
+  <div class="wrap" style="padding-top:0; display:flex; gap:1rem; align-items:center; flex-wrap:wrap">
+    <select id="round-select"></select>
+    <button id="round-load-btn" class="btn btn-outline">Load As Next Round</button>
+    <button id="results-btn" class="btn btn-outline">End Game / Show Results</button>
+    <button id="reset-btn" class="btn btn-danger">Reset Game</button>
+  </div>
+  <div id="scoreboard" class="scoreboard"></div>
+</div>
+
+<div id="clue-screen" class="clue-overlay" style="display:none">
+  <div class="clue-card">
+    <div class="label-caps category-label" id="clue-category"></div>
+    <div class="tile-value" id="clue-value" style="color:var(--gold)"></div>
+    <div class="headline-lg question" id="clue-question"></div>
+    <div class="answer" id="clue-answer"></div>
+    <div id="buzz-status" class="label-caps"></div>
+    <div style="display:flex; gap:1rem; flex-wrap:wrap; justify-content:center">
+      <button id="correct-btn" class="btn btn-primary" disabled>Correct</button>
+      <button id="incorrect-btn" class="btn btn-danger" disabled>Incorrect</button>
+      <button id="skip-btn" class="btn btn-outline">Skip / No One Got It</button>
+    </div>
+  </div>
+</div>
+
+<div id="results-screen" class="center-screen" style="display:none">
+  <p class="label-caps">Final Results</p>
+  <h1 class="display-lg winner" id="winner-name"></h1>
+  <div id="results-scoreboard" class="scoreboard"></div>
+  <button id="reset-btn-2" class="btn btn-danger">Start New Game</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/game-ui.js"></script>
+<script>
+const socket = io();
+socket.emit('host:join');
+
+const screens = {
+  lobby: document.getElementById('lobby-controls'),
+  board: document.getElementById('board-screen'),
+  clue: document.getElementById('clue-screen'),
+  results: document.getElementById('results-screen'),
+};
+function showScreen(name) {
+  Object.entries(screens).forEach(([k, el]) => { el.style.display = k === name ? '' : 'none'; });
+}
+
+const gameSelect = document.getElementById('game-select');
+const roundSelect = document.getElementById('round-select');
+
+fetch('/api/games').then(r => r.json()).then(list => {
+  const options = list.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+  gameSelect.innerHTML = options;
+  roundSelect.innerHTML = options;
+});
+
+document.getElementById('load-btn').addEventListener('click', () => socket.emit('host:loadGame', gameSelect.value));
+document.getElementById('round-load-btn').addEventListener('click', () => socket.emit('host:loadGame', roundSelect.value));
+document.getElementById('start-btn').addEventListener('click', () => socket.emit('host:startGame'));
+document.getElementById('results-btn').addEventListener('click', () => socket.emit('host:showResults'));
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (confirm('Reset the game? This clears all scores.')) socket.emit('host:resetGame');
+});
+document.getElementById('reset-btn-2').addEventListener('click', () => socket.emit('host:resetGame'));
+document.getElementById('correct-btn').addEventListener('click', () => socket.emit('host:resolve', { correct: true }));
+document.getElementById('incorrect-btn').addEventListener('click', () => socket.emit('host:resolve', { correct: false }));
+document.getElementById('skip-btn').addEventListener('click', () => socket.emit('host:skipClue'));
+
+socket.on('state', state => {
+  document.getElementById('game-name').textContent = state.gameName || 'Jeopardy — Host';
+  document.getElementById('phase-pill').textContent = state.phase;
+
+  if (state.phase === 'lobby') {
+    document.getElementById('start-btn').disabled = !state.gameId;
+    GameUI.renderScoreboard(document.getElementById('lobby-players'), state.players);
+    showScreen('lobby');
+    return;
+  }
+
+  if (state.phase === 'results') {
+    const ranked = [...state.players].sort((a, b) => b.score - a.score);
+    document.getElementById('winner-name').textContent = ranked[0] ? `🏆 ${ranked[0].name} wins!` : 'No players';
+    GameUI.renderScoreboard(document.getElementById('results-scoreboard'), state.players, { rank: true });
+    showScreen('results');
+    return;
+  }
+
+  if (state.phase === 'clue' && state.currentClue) {
+    const c = state.currentClue;
+    document.getElementById('clue-category').textContent = c.category;
+    document.getElementById('clue-value').textContent = GameUI.fmtMoney(c.value);
+    document.getElementById('clue-question').textContent = c.question;
+    document.getElementById('clue-answer').textContent = c.answer;
+
+    const someoneBuzzed = !!c.buzzedPlayerId;
+    document.getElementById('correct-btn').disabled = !someoneBuzzed;
+    document.getElementById('incorrect-btn').disabled = !someoneBuzzed;
+    document.getElementById('buzz-status').textContent = someoneBuzzed
+      ? `${state.players.find(p => p.id === c.buzzedPlayerId)?.name || '...'} buzzed in!`
+      : (c.buzzerOpen ? 'Buzzers open — waiting…' : 'Buzzers locked');
+    showScreen('clue');
+    return;
+  }
+
+  // board phase
+  GameUI.renderBoard(document.getElementById('board'), state.categories, {
+    onSelect: (catIdx, clueIdx) => socket.emit('host:selectClue', { catIdx, clueIdx }),
+  });
+  GameUI.renderScoreboard(document.getElementById('scoreboard'), state.players);
+  showScreen('board');
+});
+</script>
+</body>
+</html>

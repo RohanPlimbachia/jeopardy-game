@@ -1,0 +1,28 @@
+{
+  "_README": "This is Round 2 (\"Double Jeopardy\") of the Template Game — see the _README block at the top of sample-game.json for the full format guide and how multi-round games work. The only real difference here: same shape (5-6 categories, 5 clues each), but every value is DOUBLED — 400/800/1200/1600/2000 instead of 200/400/600/800/1000 — and the clues should be a notch harder.",
+
+  "name": "Template Game — Round 2 (Double Jeopardy)",
+
+  "categories": [
+    {
+      "name": "GEOGRAPHY",
+      "clues": [
+        { "value": 400, "question": "This is the longest river in the world.", "answer": "What is the Nile?" },
+        { "value": 800, "question": "This country is both the largest by area and spans 11 time zones.", "answer": "What is Russia?" },
+        { "value": 1200, "question": "This mountain range separates Europe from Asia.", "answer": "What are the Urals?" },
+        { "value": 1600, "question": "This African desert is the largest hot desert in the world.", "answer": "What is the Sahara?" },
+        { "value": 2000, "question": "This landlocked sea is technically the largest lake on Earth.", "answer": "What is the Caspian Sea?" }
+      ]
+    },
+    {
+      "name": "HISTORY",
+      "clues": [
+        { "value": 400, "question": "This document was signed in 1215, limiting the power of the English king.", "answer": "What is the Magna Carta?" },
+        { "value": 800, "question": "This wall dividing a European capital fell in 1989.", "answer": "What is the Berlin Wall?" },
+        { "value": 1200, "question": "This ancient wonder of the world was a lighthouse in Egypt.", "answer": "What is the Lighthouse of Alexandria?" },
+        { "value": 1600, "question": "This 1969 event put the first humans on the Moon.", "answer": "What is the Apollo 11 landing?" },
+        { "value": 2000, "question": "This treaty formally ended World War I in 1919.", "answer": "What is the Treaty of Versailles?" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "_README": [
+    "===================================================================",
+    "JEOPARDY GAME TEMPLATE — copy this file to make a new game/round",
+    "===================================================================",
+    "JSON has no real comment syntax, so every underscore-prefixed key",
+    "in this file (like this one) is a comment. The server ignores any",
+    "field it doesn't recognize, so these are 100% safe to leave in —",
+    "delete them once you're comfortable with the format, or don't.",
+    "",
+    "ONE FILE = ONE BOARD:",
+    "  name        Shown in the host's game picker and on-screen.",
+    "  categories  The board's columns, left to right. Use 5-6 for a",
+    "              board that looks right on screen.",
+    "  clues       Each category's rows, listed CHEAPEST FIRST. Give",
+    "              every category the same number of clues (5 is",
+    "              standard) and the same value ladder so the board",
+    "              lines up into a clean grid.",
+    "",
+    "EACH CLUE HAS THREE FIELDS:",
+    "  value     Dollar amount. Awarded for a correct buzz, DEDUCTED",
+    "            for a wrong one. Standard Round-1 ladder: 200/400/",
+    "            600/800/1000.",
+    "  question  The clue text shown big on /display and /play once",
+    "            selected. (Real Jeopardy phrases this as a statement",
+    "            and expects an answer phrased as a question — do that",
+    "            if you like the trivia-night feel, or just write plain",
+    "            questions. The engine doesn't care either way.)",
+    "  answer    What the host checks the buzzed-in player against.",
+    "            Only /host ever receives this field — /display and",
+    "            /play never get it, even in the raw socket payload,",
+    "            until the host has marked the clue resolved.",
+    "",
+    "-------------------------------------------------------------------",
+    "A FULL GAME: ROUND 1 + ROUND 2 (\"Double Jeopardy\") + FINAL",
+    "-------------------------------------------------------------------",
+    "A real Jeopardy game is three rounds played back to back with score",
+    "carried over between them. This engine keeps that simple: each",
+    "round is its OWN file in /data, and the host loads them one after",
+    "another from the SAME game session. Loading a new file mid-game",
+    "only swaps the board/clues — it does NOT reset player scores.",
+    "",
+    "A typical 3-file game looks like:",
+    "  sample-game.json          Round 1 (this file). Values 200-1000.",
+    "  sample-game-round2.json   Round 2, \"Double Jeopardy\". Same shape,",
+    "                            values doubled: 400/800/1200/1600/2000.",
+    "                            New categories, harder clues.",
+    "  sample-game-final.json    Final round: ONE category, ONE clue,",
+    "                            no grid. See that file for notes on",
+    "                            what it does (and doesn't) do.",
+    "",
+    "RUNNING A FULL GAME AT THE TABLE:",
+    "  1. On /host, pick 'Template Game — Round 1' and click Load Game,",
+    "     then Start Game.",
+    "  2. Play until every tile on the board is used.",
+    "  3. Still on /host, pick 'Template Game — Round 2' from the",
+    "     dropdown and click Load Game again. This swaps in the new",
+    "     board without touching anyone's score. Keep playing.",
+    "  4. Repeat for the Final-round file, then click",
+    "     'End Game / Show Results' once it's answered.",
+    "",
+    "MULTIPLE SEPARATE GAMES (not rounds of the same game):",
+    "  Any other .json file dropped in /data shows up as its own entry",
+    "  in the host's picker — e.g. data/movie-night.json,",
+    "  data/family-trivia.json. Use round-file naming (-round2, -final)",
+    "  only for files that belong to the same sitting.",
+    "==================================================================="
+  ],
+
+  "name": "Template Game — Round 1",
+
+  "categories": [
+    {
+      "name": "SCIENCE",
+      "_note": "Category name shows on the board tile — keep it short (one or two words) and it'll fit better on a TV.",
+      "clues": [
+        { "value": 200, "question": "This gas makes up about 78% of Earth's atmosphere.", "answer": "What is nitrogen?" },
+        { "value": 400, "question": "The powerhouse of the cell.", "answer": "What is the mitochondria?" },
+        { "value": 600, "question": "This force keeps planets in orbit around the sun.", "answer": "What is gravity?" },
+        { "value": 800, "question": "The chemical symbol Au represents this element.", "answer": "What is gold?" },
+        { "value": 1000, "question": "This scientist developed the theory of general relativity.", "answer": "Who is Albert Einstein?" }
+      ]
+    },
+    {
+      "name": "MOVIES",
+      "clues": [
+        { "value": 200, "question": "This 1997 film about a sinking ship starred Leonardo DiCaprio and Kate Winslet.", "answer": "What is Titanic?" },
+        { "value": 400, "question": "This studio's mascot is a lamp that hops on the letter 'i'.", "answer": "What is Pixar?" },
+        { "value": 600, "question": "This trilogy is set in Middle-earth and based on books by J.R.R. Tolkien.", "answer": "What is The Lord of the Rings?" },
+        { "value": 800, "question": "This director is known for films like Jaws, E.T., and Jurassic Park.", "answer": "Who is Steven Spielberg?" },
+        { "value": 1000, "question": "This 1994 film features Andy Dufresne's escape from Shawshank State Penitentiary.", "answer": "What is The Shawshank Redemption?" }
+      ]
+    }
+  ],
+
+  "_more_categories_go_here": "Copy one of the objects above (name + clues, 5 entries at 200/400/600/800/1000) to add a 3rd, 4th, 5th, 6th category. Delete this note and the _README/_note keys whenever you're ready — they're purely documentation."
+}
