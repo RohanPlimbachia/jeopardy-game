@@ -42,5 +42,55 @@ window.GameUI = (() => {
     });
   }
 
-  return { fmtMoney, renderBoard, renderScoreboard };
+  // Synthesized beeps via Web Audio — no audio files to source/host.
+  // ponytail: AudioContext is created lazily on the first click/touch because
+  // browsers block audio until a user gesture; on display.html (no buttons)
+  // that means the very first tap on the page, not the individual event.
+  let audioCtx = null;
+  ['click', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, () => {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }, { once: true });
+  });
+
+  function tone(freq, dur, { type = 'sine', delay = 0, gain = 0.2 } = {}) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    const t0 = audioCtx.currentTime + delay;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(gain, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  }
+
+  const SOUNDS = {
+    select: () => tone(440, 0.15),
+    buzz: () => tone(880, 0.12, { type: 'square' }),
+    correct: () => {
+      tone(523.25, 0.12, { delay: 0 });
+      tone(659.25, 0.12, { delay: 0.1 });
+      tone(783.99, 0.2, { delay: 0.2 });
+    },
+    wrong: () => tone(180, 0.35, { type: 'sawtooth', gain: 0.15 }),
+    roundEnd: () => {
+      tone(392, 0.15, { delay: 0 });
+      tone(523.25, 0.3, { delay: 0.15 });
+    },
+    gameEnd: () => {
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, 0.3, { delay: i * 0.15 }));
+    },
+  };
+
+  function playSound(name) {
+    SOUNDS[name]?.();
+  }
+
+  return { fmtMoney, renderBoard, renderScoreboard, playSound };
 })();

@@ -1,0 +1,155 @@
+{
+  "name": "DOUBLE JEOPARDY: THE SLUM LORD EDITION",
+  "categories": [
+    {
+      "name": "DORM DEPRIVATION",
+      "clues": [
+        {
+          "value": 400,
+          "question": "This common dorm insect infestation shares its name with a mattress manufacturer's worst nightmare.",
+          "answer": "What are bed bugs?"
+        },
+        {
+          "value": 800,
+          "question": "The mysterious green fuzz growing in the communal microwave of this specific dorm hall is probably a new life form.",
+          "answer": "What is biohazard?"
+        },
+        {
+          "value": 1200,
+          "question": "This appliance is technically banned in your room, but you still use it to make 3 AM depressed ramen.",
+          "answer": "What is a hot plate?"
+        },
+        {
+          "value": 1600,
+          "question": "The absolute maximum number of days you can go without washing your bedsheets before they gain sentience.",
+          "answer": "What is 30 days?"
+        },
+        {
+          "value": 2000,
+          "question": "This legal document you signed without reading gives your landlord the right to harvest your organs for back rent.",
+          "answer": "What is a lease?"
+        }
+      ]
+    },
+    {
+      "name": "DATING APPS",
+      "clues": [
+        {
+          "value": 400,
+          "question": "The gesture of swiping this direction means you hate yourself and everyone else on Tinder.",
+          "answer": "What is left?"
+        },
+        {
+          "value": 800,
+          "question": "This photo angle used by 90% of dudes on Bumble is designed to hide a weak chin and a massive beer gut.",
+          "answer": "What is the high-angle selfie?"
+        },
+        {
+          "value": 1200,
+          "question": "Your ex's bio on Hinge literally says this cliché phrase about loving 'tacos and adventure'.",
+          "answer": "What is live laugh love?"
+        },
+        {
+          "value": 1600,
+          "question": "The medical term for the soul-crushing numbness you feel after getting ghosted for the fourth time this week.",
+          "answer": "What is apathy?"
+        },
+        {
+          "value": 2000,
+          "question": "This paid feature lets you see which desperate souls accidentally swiped right on your goblin face.",
+          "answer": "What is Tinder Gold?"
+        }
+      ]
+    },
+    {
+      "name": "MORNING AFTER",
+      "clues": [
+        {
+          "value": 400,
+          "question": "The blinding headache and existential dread you feel after drinking an entire box of Franzia.",
+          "answer": "What is a hangover?"
+        },
+        {
+          "value": 800,
+          "question": "Greasy hangover food that somehow cures all ailments except your terrible life choices.",
+          "answer": "What is a bacon egg and cheese?"
+        },
+        {
+          "value": 1200,
+          "question": "The feeling of deep psychological terror when you check your bank account and see a $400 tab at a strip club.",
+          "answer": "What is buyer's remorse?"
+        },
+        {
+          "value": 1600,
+          "question": "The anatomical term for the body part you most likely threw up on after doing tequila shots.",
+          "answer": "What are your shoes?"
+        },
+        {
+          "value": 2000,
+          "question": "The scientific name for the disgusting grey liquid left in a Solo cup outside your room for three days.",
+          "answer": "What is frat water?"
+        }
+      ]
+    },
+    {
+      "name": "STUDENT DEBT",
+      "clues": [
+        {
+          "value": 400,
+          "question": "This federal loan provider haunts your dreams and ruins your credit score before you even turn 22.",
+          "answer": "Who is Sallie Mae?"
+        },
+        {
+          "value": 800,
+          "question": "The useless piece of paper you receive at graduation that cost forty grand and qualifies you to work at Starbucks.",
+          "answer": "What is a liberal arts degree?"
+        },
+        {
+          "value": 1200,
+          "question": "The grim economic reality that you will be paying off interest until the heat death of the universe.",
+          "answer": "What is amortization?"
+        },
+        {
+          "value": 1600,
+          "question": "The number of kidneys you have to sell on the black market to afford a single textbook.",
+          "answer": "What is one?"
+        },
+        {
+          "value": 2000,
+          "question": "This mythical political promise to wipe out all student loans is basically the adult version of Santa Claus.",
+          "answer": "What is student loan forgiveness?"
+        }
+      ]
+    },
+    {
+      "name": "PARTY FOULS",
+      "clues": [
+        {
+          "value": 400,
+          "question": "Dropping the ping pong ball in the beer cup during this classic red cup game means you must chug in shame.",
+          "answer": "What is beer pong?"
+        },
+        {
+          "value": 800,
+          "question": "The absolute garbage domestic beer that every broke college party insists on buying in bulk.",
+          "answer": "What is Natural Light?"
+        },
+        {
+          "value": 1200,
+          "question": "The guy at the kickback who brings an acoustic guitar and forces everyone to listen to his terrible cover of Wonderwall.",
+          "answer": "Who is the acoustic guitar guy?"
+        },
+        {
+          "value": 1600,
+          "question": "The illegal substance your sketchy roommate claims is 'pure MDMA' but is actually crushed-up vitamins and drywall.",
+          "answer": "What is bunk molly?"
+        },
+        {
+          "value": 2000,
+          "question": "The unwritten rule of the party house that states whoever breaks the IKEA coffee table must replace it with cash.",
+          "answer": "What is you break it you buy it?"
+        }
+      ]
+    }
+  ]
+}

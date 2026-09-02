@@ -39,10 +39,16 @@
   <div id="results-scoreboard" class="scoreboard"></div>
 </div>
 
+<div id="sound-hint" class="label-caps" style="position:fixed; top:0.75rem; right:1rem; opacity:0.6; cursor:pointer">🔊 Click to enable sound</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script src="/game-ui.js"></script>
 <script>
+document.addEventListener('click', () => {
+  document.getElementById('sound-hint').style.display = 'none';
+}, { once: true });
 const socket = io();
+socket.on('sfx', GameUI.playSound);
 
 const screens = {
   lobby: document.getElementById('lobby-screen'),

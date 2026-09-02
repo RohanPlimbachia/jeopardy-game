@@ -1,0 +1,155 @@
+{
+  "name": "PARTY TIME",
+  "categories": [
+    {
+      "name": "MOVIES",
+      "clues": [
+        {
+          "value": 200,
+          "question": "This animated ogre lives in a swamp and has a donkey as his best friend.",
+          "answer": "What is Shrek?"
+        },
+        {
+          "value": 400,
+          "question": "Keanu Reeves plays an unstoppable assassin who seeks revenge for his dog in this action franchise.",
+          "answer": "Who is John Wick?"
+        },
+        {
+          "value": 600,
+          "question": "Leonardo DiCaprio finally won his first Best Actor Oscar for his role in this grueling survival film.",
+          "answer": "What is The Revenant?"
+        },
+        {
+          "value": 800,
+          "question": "Directed by Hayao Miyazaki, this classic anime film features a magical bathhouse and a girl whose parents turn into pigs.",
+          "answer": "What is Spirited Away?"
+        },
+        {
+          "value": 1000,
+          "question": "This 1982 sci-fi film directed by Ridley Scott famously features the 'Tears in Rain' monologue by Roy Batty.",
+          "answer": "What is Blade Runner?"
+        }
+      ]
+    },
+    {
+      "name": "SCIENCE",
+      "clues": [
+        {
+          "value": 200,
+          "question": "This center of our solar system is a giant, glowing ball of hot plasma.",
+          "answer": "What is the Sun?"
+        },
+        {
+          "value": 400,
+          "question": "With the chemical symbol Au, this precious metal has been coveted by humans for millennia.",
+          "answer": "What is gold?"
+        },
+        {
+          "value": 600,
+          "question": "The powerhouse of the cell, responsible for generating most of the chemical energy needed, is this organelle.",
+          "answer": "What is the mitochondria?"
+        },
+        {
+          "value": 800,
+          "question": "Named after a famous physicist, this theoretical bridge in spacetime could connect two distant points.",
+          "answer": "What is an Einstein-Rosen bridge (or wormhole)?"
+        },
+        {
+          "value": 1000,
+          "question": "First isolated in 1928 by Alexander Fleming, this first true antibiotic revolutionized medicine.",
+          "answer": "What is penicillin?"
+        }
+      ]
+    },
+    {
+      "name": "FOOD",
+      "clues": [
+        {
+          "value": 200,
+          "question": "Guacamole is primarily made from this green, creamy fruit.",
+          "answer": "What is an avocado?"
+        },
+        {
+          "value": 400,
+          "question": "This Italian dish features a flat, baked round base of dough topped with tomatoes and cheese.",
+          "answer": "What is pizza?"
+        },
+        {
+          "value": 600,
+          "question": "Originating in Japan, these vinegared rice dishes are often wrapped in nori and feature raw fish.",
+          "answer": "What is sushi?"
+        },
+        {
+          "value": 800,
+          "question": "Known as 'liquid gold', this traditional spread is made entirely from churned cream or milk.",
+          "answer": "What is butter?"
+        },
+        {
+          "value": 1000,
+          "question": "This fermented cabbage side dish is a staple in Korean cuisine.",
+          "answer": "What is kimchi?"
+        }
+      ]
+    },
+    {
+      "name": "GEOGRAPHY",
+      "clues": [
+        {
+          "value": 200,
+          "question": "The famous leaning bell tower in this Italian city is a major tourist attraction.",
+          "answer": "What is Pisa?"
+        },
+        {
+          "value": 400,
+          "question": "This country is both the largest by land area and spans eleven time zones.",
+          "answer": "What is Russia?"
+        },
+        {
+          "value": 600,
+          "question": "Flowing over 4,000 miles, this river is traditionally considered the longest in the world.",
+          "answer": "What is the Nile River?"
+        },
+        {
+          "value": 800,
+          "question": "Ulaanbaatar is the cold and windy capital city of this landlocked Asian nation.",
+          "answer": "What is Mongolia?"
+        },
+        {
+          "value": 1000,
+          "question": "This narrow strait separates the continents of Europe and Asia at the city of Istanbul.",
+          "answer": "What is the Bosphorus?"
+        }
+      ]
+    },
+    {
+      "name": "MUSIC",
+      "clues": [
+        {
+          "value": 200,
+          "question": "Pop superstar Taylor Swift is famous for re-recording her albums with this subtitle added.",
+          "answer": "What is Taylor's Version?"
+        },
+        {
+          "value": 400,
+          "question": "This legendary British rock band released timeless hits like 'Hey Jude' and 'Let It Be'.",
+          "answer": "Who are The Beatles?"
+        },
+        {
+          "value": 600,
+          "question": "Often called the King of Pop, this artist released the best-selling album of all time, 'Thriller'.",
+          "answer": "Who is Michael Jackson?"
+        },
+        {
+          "value": 800,
+          "question": "Ludwig van Beethoven composed his famous Ninth Symphony while completely experiencing this condition.",
+          "answer": "What is deafness?"
+        },
+        {
+          "value": 1000,
+          "question": "This complex 1975 rock epic by Queen is nearly six minutes long and features operatic sections.",
+          "answer": "What is 'Bohemian Rhapsody'?"
+        }
+      ]
+    }
+  ]
+}
