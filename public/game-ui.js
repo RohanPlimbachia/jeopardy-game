@@ -37,7 +37,14 @@ window.GameUI = (() => {
     list.forEach(p => {
       const card = document.createElement('div');
       card.className = 'player-card' + (buzzedId === p.id ? ' buzzed' : '');
-      card.innerHTML = `<div class="name label-caps">${p.name}</div><div class="score">${p.score}</div>`;
+      // Player names come from user input, so set them as text, never as HTML.
+      const name = document.createElement('div');
+      name.className = 'name label-caps';
+      name.textContent = p.name;
+      const score = document.createElement('div');
+      score.className = 'score';
+      score.textContent = p.score;
+      card.append(name, score);
       container.appendChild(card);
     });
   }

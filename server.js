@@ -3,15 +3,15 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const crypto = require('crypto');
 const { Server } = require('socket.io');
-
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const { Game, validateBoard } = require('./game');
+const { generateBoard } = require('./ai');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const PORT = process.env.PORT || 3000;
+// Optional. When set, the host screen asks for this PIN before it can see
+// answers or control the game.
+const HOST_PIN = process.env.HOST_PIN || '';
 
 function loadGames() {
   const games = {};
@@ -19,9 +19,8 @@ function loadGames() {
     if (!file.endsWith('.json')) continue;
     const id = path.basename(file, '.json');
     try {
-      const raw = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8'));
-      if (!Array.isArray(raw.categories)) throw new Error('missing "categories" array');
-      games[id] = { name: raw.name || id, categories: raw.categories };
+      const board = validateBoard(JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8')));
+      games[id] = { name: board.name || id, categories: board.categories };
     } catch (e) {
       console.error(`Skipping ${file}: ${e.message}`);
     }
@@ -29,134 +28,28 @@ function loadGames() {
   return games;
 }
 
-const games = loadGames();
+const game = new Game(loadGames());
 const hostSockets = new Set();
 const playerSockets = new Map(); // socket.id -> playerId
 
-const GEMINI_MODEL = 'gemini-3.5-flash-lite';
-const GAME_SCHEMA = {
-  type: 'object',
-  properties: {
-    name: { type: 'string' },
-    categories: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          name: { type: 'string', description: 'Short category title, one or two words, ALL CAPS' },
-          clues: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                value: { type: 'integer' },
-                question: { type: 'string' },
-                answer: { type: 'string', description: 'Phrased as a question, e.g. "What is X?"' },
-              },
-              required: ['value', 'question', 'answer'],
-            },
-          },
-        },
-        required: ['name', 'clues'],
-      },
-    },
-  },
-  required: ['name', 'categories'],
-};
-
-// SFW = safe for a mixed crowd. NSFW = dark/adult humor for a college house
-// party, not an excuse to generate slurs, real-person attacks, or explicit
-// sexual content — the prompt draws that line explicitly since the model has
-// no other guardrail here.
-function buildGamePrompt({ topic, round }) {
-  const ladder = round === 2 ? '400, 800, 1200, 1600, 2000' : '200, 400, 600, 800, 1000';
-  const tone = round === 2
-    ? `This is Round 2 ("Double Jeopardy"), played at a college house party among adult friends. Make it DARK and NSFW: crude humor, profanity, taboo/edgy jokes, roasting pop culture and college-life stereotypes (hangovers, bad exes, student debt, dating apps, etc.) is all encouraged. Do NOT include slurs, hate speech targeting real protected groups, sexual content involving minors, or content that targets/humiliates a specific real private person. Keep it "raunchy comedy club", not genuinely hateful or illegal.`
-    : `This is Round 1, played first. Keep it SFW and fun for a general audience — pop culture, general knowledge, wordplay, silly-but-clean humor is great. No profanity or adult content.`;
-  const topicLine = topic ? `Theme/topic to lean into: ${topic}.` : 'Mix of pop culture, general knowledge, and party-game fun categories.';
-
-  return `Generate a Jeopardy-style trivia board as JSON matching the given schema.
-
-${tone}
-${topicLine}
-
-Rules:
-- Exactly 5 categories, each with exactly 5 clues.
-- Clue values within each category, cheapest to most expensive, must be exactly: ${ladder}.
-- Harder/more obscure clues at higher values, easier ones at lower values.
-- Category names short (1-2 words), ALL CAPS.
-- "question" is the clue shown to players (a statement, Jeopardy-style). "answer" is phrased as a question ("What is...?", "Who is...?").
-- Keep every clue and answer factually correct or, if a joke clue, clearly and unambiguously "gettable".
-- "name" is a short punchy title for this board.`;
-}
-
-async function generateGame({ topic, round }) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY is not set on the server');
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: buildGamePrompt({ topic, round }) }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: GAME_SCHEMA,
-      },
-    }),
-  });
-  if (!res.ok) throw new Error(`Gemini API error ${res.status}: ${(await res.text()).slice(0, 500)}`);
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Gemini returned no content');
-  const game = JSON.parse(text);
-  if (!Array.isArray(game.categories)) throw new Error('Gemini response missing "categories"');
-  return game;
-}
-
-// single shared game state (local-network party game, no multi-room support)
-let state = {
-  phase: 'lobby', // lobby | board | clue | results
-  gameId: null,
-  gameName: null,
-  categories: [], // [{ name, clues: [{ value, question, answer, used }] }]
-  players: {}, // playerId -> { id, name, score }
-  currentClue: null, // { catIdx, clueIdx, category, value, question, answer, buzzedPlayerId, locked: Set, buzzerOpen }
-};
-
-function publicClue() {
-  const c = state.currentClue;
-  if (!c) return null;
-  return {
-    category: c.category,
-    value: c.value,
-    question: c.question,
-    buzzedPlayerId: c.buzzedPlayerId,
-    buzzerOpen: c.buzzerOpen,
-    lockedPlayerIds: Array.from(c.locked),
-  };
-}
-
-// isHost gates the only secret in the game: the current clue's answer.
-function stateFor(isHost) {
-  return {
-    phase: state.phase,
-    gameId: state.gameId,
-    gameName: state.gameName,
-    categories: state.categories.map(c => ({
-      name: c.name,
-      clues: c.clues.map(cl => ({ value: cl.value, used: cl.used })),
-    })),
-    players: Object.values(state.players).map(p => ({ id: p.id, name: p.name, score: p.score })),
-    currentClue: isHost && state.currentClue ? { ...publicClue(), answer: state.currentClue.answer } : publicClue(),
-  };
-}
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
 function broadcastState() {
   for (const [id, socket] of io.of('/').sockets) {
-    socket.emit('state', stateFor(hostSockets.has(id)));
+    socket.emit('state', game.viewFor(hostSockets.has(id)));
   }
+}
+
+const SOUND_EVENTS = new Set(['select', 'buzz', 'correct', 'wrong', 'roundEnd', 'gameEnd']);
+
+// Runs a game action; if it changed anything, plays its sound and pushes the
+// new state to every screen.
+function apply(result) {
+  if (!result) return;
+  if (SOUND_EVENTS.has(result)) io.emit('sfx', result);
+  broadcastState();
 }
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -164,21 +57,23 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'play.htm
 app.get('/play', (req, res) => res.sendFile(path.join(__dirname, 'public', 'play.html')));
 app.get('/display', (req, res) => res.sendFile(path.join(__dirname, 'public', 'display.html')));
 app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public', 'host.html')));
+
 app.get('/api/games', (req, res) => {
-  res.json(Object.entries(games).map(([id, g]) => ({ id, name: g.name })));
+  res.json(Object.entries(game.games).map(([id, g]) => ({ id, name: g.name })));
 });
 
 app.use(express.json());
 app.post('/api/generate', async (req, res) => {
+  if (HOST_PIN && req.get('x-host-pin') !== HOST_PIN) return res.status(403).json({ error: 'Host PIN required' });
   const round = req.body?.round === 2 ? 2 : 1;
   const topic = String(req.body?.topic || '').trim().slice(0, 100);
   try {
-    const game = await generateGame({ topic, round });
-    const slug = (topic || 'ai-game').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const id = `${slug}-round${round}-${Date.now().toString(36)}`;
-    fs.writeFileSync(path.join(DATA_DIR, `${id}.json`), JSON.stringify(game, null, 2));
-    games[id] = { name: game.name || id, categories: game.categories };
-    res.json({ id, name: games[id].name });
+    const board = validateBoard(await generateBoard({ topic, round }));
+    const slug = (topic || 'ai-game').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+    const id = `${slug || 'ai-game'}-round${round}-${Date.now().toString(36)}`;
+    fs.writeFileSync(path.join(DATA_DIR, `${id}.json`), JSON.stringify(board, null, 2));
+    game.addGame(id, board);
+    res.json({ id, name: game.games[id].name });
   } catch (e) {
     console.error('Generate failed:', e.message);
     res.status(500).json({ error: e.message });
@@ -186,157 +81,54 @@ app.post('/api/generate', async (req, res) => {
 });
 
 io.on('connection', socket => {
-  socket.emit('state', stateFor(false));
+  socket.emit('state', game.viewFor(false));
 
-  socket.on('host:join', () => {
-    hostSockets.add(socket.id);
-    socket.emit('state', stateFor(true));
-  });
+  // Host-only events are ignored unless this socket joined as host.
+  const hostOnly = handler => (...args) => {
+    if (hostSockets.has(socket.id)) handler(...args);
+  };
 
-  // playerId (from the client's localStorage) lets a refreshed/reconnected
-  // player rejoin as themself instead of starting a new player with score 0.
-  socket.on('player:join', ({ name, playerId } = {}, ack) => {
-    name = String(name || '').trim().slice(0, 20) || 'Player';
-    const id = playerId || crypto.randomUUID();
-    if (!state.players[id]) {
-      state.players[id] = { id, name, score: 0 };
-    } else {
-      state.players[id].name = name;
+  socket.on('host:join', ({ pin } = {}, ack) => {
+    const ok = !HOST_PIN || pin === HOST_PIN;
+    if (ok) {
+      hostSockets.add(socket.id);
+      socket.emit('state', game.viewFor(true));
     }
-    playerSockets.set(socket.id, id);
-    if (typeof ack === 'function') ack({ playerId: id });
+    if (typeof ack === 'function') ack({ ok, pinRequired: Boolean(HOST_PIN) });
+  });
+
+  socket.on('player:join', (info = {}, ack) => {
+    const playerId = game.join(info);
+    playerSockets.set(socket.id, playerId);
+    if (typeof ack === 'function') ack({ playerId });
     broadcastState();
   });
 
-  // Allowed from the lobby (first load) or from the board (switching to the
-  // next round mid-game, e.g. Round 1 -> Double Jeopardy -> Final). Scores
-  // are untouched either way — only the board/clues change.
-  socket.on('host:loadGame', gameId => {
-    if (state.phase !== 'lobby' && state.phase !== 'board') return;
-    const g = games[gameId];
-    if (!g) return;
-    const isNextRound = state.phase === 'board';
-    state.gameId = gameId;
-    state.gameName = g.name;
-    state.categories = g.categories.map(c => ({
-      name: c.name,
-      clues: c.clues.map(cl => ({ ...cl, used: false })),
-    }));
-    state.currentClue = null;
-    if (isNextRound) io.emit('sfx', 'roundEnd');
-    broadcastState();
-  });
+  socket.on('player:buzz', () => apply(game.buzz(playerSockets.get(socket.id))));
 
-  socket.on('host:startGame', () => {
-    if (state.phase !== 'lobby' || !state.gameId) return;
-    state.phase = 'board';
-    broadcastState();
-  });
-
-  socket.on('host:selectClue', ({ catIdx, clueIdx }) => {
-    if (state.phase !== 'board') return;
-    const clue = state.categories?.[catIdx]?.clues?.[clueIdx];
-    if (!clue || clue.used) return;
-    state.currentClue = {
-      catIdx,
-      clueIdx,
-      category: state.categories[catIdx].name,
-      value: clue.value,
-      question: clue.question,
-      answer: clue.answer,
-      buzzedPlayerId: null,
-      locked: new Set(),
-      buzzerOpen: true,
-    };
-    state.phase = 'clue';
-    io.emit('sfx', 'select');
-    broadcastState();
-  });
-
-  socket.on('player:buzz', () => {
-    const playerId = playerSockets.get(socket.id);
-    const c = state.currentClue;
-    if (!playerId || !c || !c.buzzerOpen || c.buzzedPlayerId || c.locked.has(playerId)) return;
-    c.buzzedPlayerId = playerId;
-    c.buzzerOpen = false;
-    io.emit('sfx', 'buzz');
-    broadcastState();
-  });
-
-  socket.on('host:resolve', ({ correct }) => {
-    const c = state.currentClue;
-    if (!c || !c.buzzedPlayerId) return;
-    const clue = state.categories[c.catIdx].clues[c.clueIdx];
-    const player = state.players[c.buzzedPlayerId];
-    if (correct) {
-      player.score += clue.value;
-      clue.used = true;
-      state.currentClue = null;
-      state.phase = 'board';
-      io.emit('sfx', 'correct');
-    } else {
-      player.score -= clue.value;
-      c.locked.add(c.buzzedPlayerId);
-      c.buzzedPlayerId = null;
-      const everyoneLocked = Object.keys(state.players).every(id => c.locked.has(id));
-      if (everyoneLocked) {
-        clue.used = true;
-        state.currentClue = null;
-        state.phase = 'board';
-      } else {
-        c.buzzerOpen = true;
-      }
-      io.emit('sfx', 'wrong');
-    }
-    broadcastState();
-  });
-
-  socket.on('host:skipClue', () => {
-    if (state.phase !== 'clue' || !state.currentClue) return;
-    const c = state.currentClue;
-    state.categories[c.catIdx].clues[c.clueIdx].used = true;
-    state.currentClue = null;
-    state.phase = 'board';
-    broadcastState();
-  });
-
-  socket.on('host:showResults', () => {
-    if (state.phase !== 'board') return;
-    state.phase = 'results';
-    state.currentClue = null;
-    io.emit('sfx', 'gameEnd');
-    broadcastState();
-  });
-
-  socket.on('host:resetGame', () => {
-    const g = state.gameId ? games[state.gameId] : null;
-    state.phase = 'lobby';
-    state.players = {};
-    state.currentClue = null;
-    state.categories = g ? g.categories.map(c => ({ name: c.name, clues: c.clues.map(cl => ({ ...cl, used: false })) })) : [];
-    broadcastState();
-  });
+  socket.on('host:loadGame', hostOnly(gameId => apply(game.loadGame(gameId))));
+  socket.on('host:startGame', hostOnly(() => apply(game.start())));
+  socket.on('host:selectClue', hostOnly(({ catIdx, clueIdx } = {}) => apply(game.selectClue(catIdx, clueIdx))));
+  socket.on('host:resolve', hostOnly(({ correct } = {}) => apply(game.resolve(Boolean(correct)))));
+  socket.on('host:skipClue', hostOnly(() => apply(game.skipClue())));
+  socket.on('host:showResults', hostOnly(() => apply(game.showResults())));
+  socket.on('host:resetGame', hostOnly(() => apply(game.reset())));
 
   socket.on('disconnect', () => {
     hostSockets.delete(socket.id);
     playerSockets.delete(socket.id);
-    // players are kept in state so a refresh/reconnect restores their score
+    // Players stay in the game so a refresh or reconnect keeps their score.
   });
 });
 
 server.listen(PORT, () => {
-  const nets = os.networkInterfaces();
-  const ips = Object.values(nets)
+  const ips = Object.values(os.networkInterfaces())
     .flat()
     .filter(net => net.family === 'IPv4' && !net.internal)
     .map(net => net.address);
 
   console.log('Jeopardy server running:');
-  console.log(`  Host controls:  http://localhost:${PORT}/host`);
+  console.log(`  Host controls:  http://localhost:${PORT}/host${HOST_PIN ? '  (PIN required)' : ''}`);
   console.log(`  Shared display: http://localhost:${PORT}/display`);
-  if (ips.length) {
-    ips.forEach(ip => console.log(`  Players join:   http://${ip}:${PORT}/`));
-  } else {
-    console.log(`  Players join:   http://localhost:${PORT}/`);
-  }
+  (ips.length ? ips : ['localhost']).forEach(ip => console.log(`  Players join:   http://${ip}:${PORT}/`));
 });

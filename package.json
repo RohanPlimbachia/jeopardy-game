@@ -1,13 +1,21 @@
 {
   "name": "jeopardy-game",
   "version": "1.0.0",
-  "description": "Local-network multiplayer Jeopardy game",
+  "description": "Local-network multiplayer Jeopardy: a shared TV board, a host console, and phones as buzzers",
   "main": "server.js",
   "scripts": {
-    "start": "node --env-file-if-exists=.env server.js"
+    "start": "node --env-file-if-exists=.env server.js",
+    "test": "jest"
   },
   "dependencies": {
     "express": "^4.19.2",
     "socket.io": "^4.7.5"
-  }
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=22.9"
+  },
+  "license": "MIT"
 }

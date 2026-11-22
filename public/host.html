@@ -70,7 +70,19 @@
 <script src="/game-ui.js"></script>
 <script>
 const socket = io();
-socket.emit('host:join');
+
+// If the server has a HOST_PIN set, ask for it once and remember it for this tab.
+let hostPin = sessionStorage.getItem('hostPin') || '';
+function joinAsHost() {
+  socket.emit('host:join', { pin: hostPin }, ({ ok, pinRequired }) => {
+    if (ok) return;
+    hostPin = prompt(pinRequired && hostPin ? 'Wrong PIN. Host PIN:' : 'Host PIN:') || '';
+    sessionStorage.setItem('hostPin', hostPin);
+    if (hostPin) joinAsHost();
+  });
+}
+// Re-join after a dropped connection so host controls keep working.
+socket.on('connect', joinAsHost);
 socket.on('sfx', GameUI.playSound);
 
 const screens = {
@@ -88,9 +100,9 @@ const roundSelect = document.getElementById('round-select');
 
 function refreshGameList() {
   return fetch('/api/games').then(r => r.json()).then(list => {
-    const options = list.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
-    gameSelect.innerHTML = options;
-    roundSelect.innerHTML = options;
+    for (const select of [gameSelect, roundSelect]) {
+      select.replaceChildren(...list.map(g => new Option(g.name, g.id)));
+    }
     return list;
   });
 }
@@ -105,7 +117,7 @@ async function generateBoard(round) {
   try {
     const res = await fetch('/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-host-pin': hostPin },
       body: JSON.stringify({ topic, round }),
     });
     const data = await res.json();
